@@ -13,6 +13,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+
     permissions:
       contents: read
 
@@ -29,8 +30,13 @@ jobs:
             ops/staging
             scripts/build_dashboard_snapshots.cjs
             docs/v6/v6-core.js
+            docs/v6/v6-markets.js
             scangoal/prospective_protocol.json
           sparse-checkout-cone-mode: false
+
+      - name: Verificar dependencias
+        run: |
+          node -e "require('./source/docs/v6/v6-core.js')"
 
       - name: Gerar dados sinteticos
         run: |
@@ -89,6 +95,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 5
+
     permissions:
       pages: write
       id-token: write
