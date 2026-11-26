@@ -157,7 +157,7 @@ jobs:
         run: echo "Revisao 30 publicada $(date -u +%FT%TZ)" >> "$GITHUB_STEP_SUMMARY"
   measure:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 135
     permissions:
       contents: read
