@@ -1,0 +1,356 @@
+name: Ensaio CDN V7 - 2 horas
+
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: staging-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+
+    strategy:
+      fail-fast: true
+      max-parallel: 3
+      matrix:
+        revision: [7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: nunovinhas-creator/goal-roi
+          ref: 3ba78e290526e7284877a3b8ac3879b23dc4a242
+          path: source
+          persist-credentials: false
+          sparse-checkout: |
+            audits/v7/snapshots
+            ops/staging
+            scripts/build_dashboard_snapshots.cjs
+            docs/v6/v6-core.js
+            docs/v6/v6-markets.js
+            scangoal/prospective_protocol.json
+          sparse-checkout-cone-mode: false
+
+      - name: Gerar e verificar pacote sintetico
+        env:
+          REVISION: ${{ matrix.revision }}
+        run: |
+          python3 source/ops/staging/remote/prepare_site.py --out "$RUNNER_TEMP/site" --revisions "$REVISION"
+          PYTHONPATH=source python3 - <<'PYTHON'
+          import hashlib, json, os, re
+          from pathlib import Path
+          from audits.v7.snapshots import publisher_v2 as P
+          root = Path(os.environ['RUNNER_TEMP']) / 'site'
+          manifest = json.loads((root / 'SITE-MANIFEST.json').read_text())
+          assert manifest['synthetic'] is True
+          files = {p.relative_to(root).as_posix() for p in root.rglob('*') if p.is_file()}
+          assert files == set(manifest['files']) | {'SITE-MANIFEST.json'}
+          allowed = {'index.html', 'probe.mjs', '.nojekyll', 'SITE-MANIFEST.json', 'client/client_integrity.mjs', 'client/client_integrity_v2.mjs'}
+          for rel in files:
+              p = root / rel
+              assert not p.is_symlink()
+              assert rel in allowed or (rel.startswith('snapshots/') and P.PUBLISHABLE.fullmatch(rel[10:]))
+              if rel in manifest['files']:
+                  assert hashlib.sha256(p.read_bytes()).hexdigest() == manifest['files'][rel]
+              if rel.startswith('snapshots/'):
+                  assert not any(x in p.read_text().lower() for x in ('scangoal.com', 't.me/', 'telegram.org'))
+          pointer = P.read_pointer(root / 'snapshots')
+          P.validate_pointer(pointer)
+          for rev in pointer['history']:
+              P.verify_revision(rev, root / 'snapshots')
+          print('Pacote verificado:', len(files), 'ficheiros')
+          PYTHON
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          name: staging-${{ matrix.revision }}
+          path: ${{ runner.temp }}/site
+          retention-days: 1
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 145
+
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+
+    steps:
+      - name: Publicar revisao 7
+        uses: actions/deploy-pages@v4
+        with:
+          artifact_name: staging-7
+
+      - name: Registar revisao 7
+        run: echo "Revisao 7 publicada $(date -u +%FT%TZ)" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Intervalo de 600 segundos
+        run: sleep 600
+
+      - name: Publicar revisao 8
+        uses: actions/deploy-pages@v4
+        with:
+          artifact_name: staging-8
+
+      - name: Registar revisao 8
+        run: echo "Revisao 8 publicada $(date -u +%FT%TZ)" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Intervalo de 600 segundos
+        run: sleep 600
+
+      - name: Publicar revisao 9
+        uses: actions/deploy-pages@v4
+        with:
+          artifact_name: staging-9
+
+      - name: Registar revisao 9
+        run: echo "Revisao 9 publicada $(date -u +%FT%TZ)" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Intervalo de 600 segundos
+        run: sleep 600
+
+      - name: Publicar revisao 10
+        uses: actions/deploy-pages@v4
+        with:
+          artifact_name: staging-10
+
+      - name: Registar revisao 10
+        run: echo "Revisao 10 publicada $(date -u +%FT%TZ)" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Intervalo de 600 segundos
+        run: sleep 600
+
+      - name: Publicar revisao 11
+        uses: actions/deploy-pages@v4
+        with:
+          artifact_name: staging-11
+
+      - name: Registar revisao 11
+        run: echo "Revisao 11 publicada $(date -u +%FT%TZ)" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Intervalo de 600 segundos
+        run: sleep 600
+
+      - name: Publicar revisao 12
+        uses: actions/deploy-pages@v4
+        with:
+          artifact_name: staging-12
+
+      - name: Registar revisao 12
+        run: echo "Revisao 12 publicada $(date -u +%FT%TZ)" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Intervalo de 600 segundos
+        run: sleep 600
+
+      - name: Publicar revisao 13
+        uses: actions/deploy-pages@v4
+        with:
+          artifact_name: staging-13
+
+      - name: Registar revisao 13
+        run: echo "Revisao 13 publicada $(date -u +%FT%TZ)" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Intervalo de 600 segundos
+        run: sleep 600
+
+      - name: Publicar revisao 14
+        uses: actions/deploy-pages@v4
+        with:
+          artifact_name: staging-14
+
+      - name: Registar revisao 14
+        run: echo "Revisao 14 publicada $(date -u +%FT%TZ)" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Intervalo de 600 segundos
+        run: sleep 600
+
+      - name: Publicar revisao 15
+        uses: actions/deploy-pages@v4
+        with:
+          artifact_name: staging-15
+
+      - name: Registar revisao 15
+        run: echo "Revisao 15 publicada $(date -u +%FT%TZ)" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Intervalo de 600 segundos
+        run: sleep 600
+
+      - name: Publicar revisao 16
+        uses: actions/deploy-pages@v4
+        with:
+          artifact_name: staging-16
+
+      - name: Registar revisao 16
+        run: echo "Revisao 16 publicada $(date -u +%FT%TZ)" >> "$GITHUB_STEP_SUMMARY"
+
+  measure:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 135
+
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: nunovinhas-creator/goal-roi
+          ref: 3ba78e290526e7284877a3b8ac3879b23dc4a242
+          path: source
+          persist-credentials: false
+          sparse-checkout: |
+            audits/v7/snapshots/client_integrity.mjs
+            audits/v7/snapshots/client_integrity_v2.mjs
+            ops/staging/remote/measure_remote.mjs
+          sparse-checkout-cone-mode: false
+
+      - name: Medir HTTPS durante 120 minutos
+        run: |
+          node --input-type=module <<'JS'
+          import {sample} from './source/ops/staging/remote/measure_remote.mjs';
+          import fs from 'node:fs';
+
+          const base = 'https://nunovinhas-creator.github.io/goal-roi-staging';
+          const start = Date.now(), rows = [];
+          const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+          for (let slot = 0; slot < 120; slot++) {
+            const remaining = start + slot * 60000 - Date.now();
+
+            if (remaining > 0) await sleep(remaining);
+
+            let row;
+
+            if (Date.now() - start >= 120 * 60000) {
+              row = {
+                which: 'unavailable',
+                errors: ['measurement deadline exceeded'],
+                ms: null
+              };
+            } else {
+              try {
+                row = await sample(base);
+              } catch (e) {
+                row = {
+                  which: 'unavailable',
+                  errors: [String(e)],
+                  ms: null
+                };
+              }
+            }
+
+            const delta = Date.parse(row.generated_at) - Date.parse('2030-01-01T00:00:00Z');
+
+            row.revision = Number.isInteger(delta / 1200000) && delta >= 0
+              ? delta / 1200000
+              : null;
+
+            row.slot = slot;
+            rows.push(row);
+
+            fs.appendFileSync(
+              'stability.jsonl',
+              JSON.stringify(row) + '\n'
+            );
+
+            console.log(JSON.stringify(row));
+          }
+
+          const verified = rows.filter(
+            r => ['current', 'older'].includes(r.which)
+          );
+
+          const fallback = rows.filter(
+            r => r.which === 'full_report_required'
+          ).length;
+
+          const unavailable = rows.filter(
+            r => r.which === 'unavailable'
+          ).length;
+
+          const observed = [...new Set(
+            verified.map(r => r.revision).filter(Number.isInteger)
+          )].sort((a,b) => a-b);
+
+          const missing = Array.from(
+            {length: 10}, (_,i) => i+7
+          ).filter(n => !observed.includes(n));
+
+          const invalid = verified.filter(
+            r => r.revision === null || r.revision < 6 || r.revision > 16
+          ).length;
+
+          let regressions = 0, max = 0;
+
+          for (const r of verified) {
+            if (Number.isInteger(r.revision)) {
+              if (r.revision < max) regressions++;
+              max = Math.max(max, r.revision);
+            }
+          }
+
+          const latency = verified.map(
+            r => r.ms
+          ).filter(Number.isFinite).sort((a,b) => a-b);
+
+          const p95 = latency.length
+            ? latency[Math.ceil(latency.length * .95) - 1]
+            : null;
+
+          const result = {
+            samples: rows.length,
+            verified: verified.length,
+            fallback_required: fallback,
+            unavailable,
+            observed_revisions: observed,
+            missing_revisions: missing,
+            invalid_revision_labels: invalid,
+            revision_regressions: regressions,
+            p95_probe_ms: p95,
+            cache_probe_errors: rows.filter(r => r.errors?.length).length,
+            note: 'p95 includes extra cache probes; current refers to the served pointer, not necessarily the latest deployment.'
+          };
+
+          result.pass =
+            rows.length === 120 &&
+            missing.length === 0 &&
+            invalid === 0 &&
+            regressions === 0 &&
+            unavailable === 0 &&
+            fallback / rows.length < .01 &&
+            p95 !== null &&
+            p95 <= 2000;
+
+          fs.writeFileSync(
+            'stability-summary.json',
+            JSON.stringify(result, null, 2) + '\n'
+          );
+
+          fs.appendFileSync(
+            process.env.GITHUB_STEP_SUMMARY,
+            '```json\n' + JSON.stringify(result, null, 2) + '\n```\n'
+          );
+
+          if (!result.pass) process.exitCode = 1;
+          JS
+
+      - name: Guardar medicoes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stability-evidence
+          path: |
+            stability.jsonl
+            stability-summary.json
+          retention-days: 1
